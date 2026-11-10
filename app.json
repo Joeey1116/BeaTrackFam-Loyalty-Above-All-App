@@ -41,6 +41,7 @@
     "name": "BeaTrackFam",
     "orientation": "default",
     "plugins": [
+      "./plugins/with-app-clip",
       "expo-router",
       "expo-font",
       "expo-web-browser",
