@@ -333,6 +333,18 @@ function withAppClipXcodeProject(config) {
       { target: clipTargetUuid },
       clipGroupUuid
     );
+    // addResourceFile stores the full relative path, but the clip's
+    // PBXGroup already carries path = BeaTrackFamClip, so the full path
+    // resolves doubled (…/BeaTrackFamClip/BeaTrackFamClip/…) and actool
+    // can't find the AppIcon set (main run 34, Nov 10 2026 — same bug as
+    // Motivation's Images.xcassets). The clip's other files use bare
+    // basenames in this group — match that.
+    if (assetsFile && assetsFile.fileRef) {
+      const assetsRef =
+        project.hash.project.objects.PBXFileReference &&
+        project.hash.project.objects.PBXFileReference[assetsFile.fileRef];
+      if (assetsRef) assetsRef.path = '"Assets.xcassets"';
+    }
     // The `xcode` writer emits literal `undefined` for unset file-ref
     // attributes (fileEncoding/lastKnownFileType on the product and
     // framework refs, explicitFileType on source refs). Xcode tolerates
