@@ -8,5 +8,9 @@
 	<array>
 		<string>$(AppIdentifierPrefix)com.beatrackfaminc</string>
 	</array>
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:beatrackfam.info</string>
+	</array>
 </dict>
 </plist>

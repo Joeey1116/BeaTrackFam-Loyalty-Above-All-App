@@ -26,8 +26,14 @@
  *   and embeds `BeaTrackFamClip.app` inside the parent app bundle — which
  *   is what makes it ship inside the IPA.
  * - The clip target in the `BeaTrackFam` scheme's Build action.
- * - `com.apple.developer.associated-appclip-app-identifiers` on the parent
- *   app's entitlements, listing the clip bundle ID.
+ * - `com.apple.developer.associated-domains` (`applinks:beatrackfam.info`)
+ *   on the CLIP's entitlements only (checked-in
+ *   `plugins/app-clip/BeaTrackFamClip.entitlements`, copied into ios/ by
+ *   this plugin on every prebuild), so the clip can be invoked from
+ *   beatrackfam.info links. The parent app does NOT get
+ *   `com.apple.developer.associated-appclip-app-identifiers` — see the
+ *   NOTE in withAppClip below (removed in 1fb5696; the profile doesn't
+ *   carry it and declaring it breaks the archive).
  *
  * The clip reuses the app's version/build number from app.json (it is NOT
  * a version bump — the numbers are only stamped into the clip's Info.plist
