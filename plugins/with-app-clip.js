@@ -354,7 +354,12 @@ function withAppClipXcodeProject(config) {
       "Embed App Clips",
       mainTargetUuid,
       "watch2_app", // folder-type mapping that yields dstSubfolderSpec 16
-      ""
+      // Explicit destination: the dstPath "" form generated a phase that
+      // Xcode never executed in the Rewards 2.0.0 archives (Nov 10, 2026 —
+      // clip built, never embedded, ASC said HAS APP CLIP: NO twice). The
+      // explicit $(CONTENTS_FOLDER_PATH)/AppClips destination (same as the
+      // Motivation plugin) is the form that actually runs.
+      '"$(CONTENTS_FOLDER_PATH)/AppClips"'
     );
     if (embedPhase && embedPhase.buildPhase) {
       embedPhase.buildPhase.dstSubfolderSpec = 16;
