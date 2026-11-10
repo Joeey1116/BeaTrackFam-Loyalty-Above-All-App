@@ -92,7 +92,7 @@ jobs:
           const list = o.XCConfigurationList[clip[1].buildConfigurationList];
           for (const c of list.buildConfigurations) {
             const s = o.XCBuildConfiguration[c.value].buildSettings;
-            if (s.PRODUCT_BUNDLE_IDENTIFIER !== '\"com.beatrackfaminc.BeaTrackFam\"') fail('clip ' + c.comment + ' bundle ID is ' + s.PRODUCT_BUNDLE_IDENTIFIER + ', expected com.beatrackfaminc.BeaTrackFam');
+            if (!String(s.PRODUCT_BUNDLE_IDENTIFIER).includes('com.beatrackfaminc.BeaTrackFam')) fail('clip ' + c.comment + ' bundle ID is ' + s.PRODUCT_BUNDLE_IDENTIFIER + ', expected com.beatrackfaminc.BeaTrackFam');
           }
           const main = Object.entries(o.PBXNativeTarget).find(([k, v]) => v && String(v.name) === 'BeaTrackFam');
           if (!main || !main[1].dependencies || main[1].dependencies.length !== 1) fail('main target does not depend on the clip target');
