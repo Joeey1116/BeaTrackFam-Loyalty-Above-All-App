@@ -318,12 +318,26 @@ function withAppClipXcodeProject(config) {
       clipTargetUuid
     );
 
-    project.addSourceFile(`${CLIP_DIR_NAME}/AppClipApp.swift`, {
-      target: clipTargetUuid,
-    }, clipGroupUuid);
-    project.addSourceFile(`${CLIP_DIR_NAME}/ContentView.swift`, {
-      target: clipTargetUuid,
-    }, clipGroupUuid);
+    // addSourceFile stores the full relative path, but the clip's PBXGroup
+    // already carries path = BeaTrackFamClip, so the full path resolves
+    // doubled (…/BeaTrackFamClip/BeaTrackFamClip/…) — same bug as the
+    // xcassets ref below. Use bare basenames in this group.
+    const clipSwiftFiles = [
+      project.addSourceFile(`${CLIP_DIR_NAME}/AppClipApp.swift`, {
+        target: clipTargetUuid,
+      }, clipGroupUuid),
+      project.addSourceFile(`${CLIP_DIR_NAME}/ContentView.swift`, {
+        target: clipTargetUuid,
+      }, clipGroupUuid),
+    ];
+    for (const f of clipSwiftFiles) {
+      if (f && f.fileRef) {
+        const ref =
+          project.hash.project.objects.PBXFileReference &&
+          project.hash.project.objects.PBXFileReference[f.fileRef];
+        if (ref) ref.path = `"${f.basename}"`;
+      }
+    }
     // StoreKit is used for the "Get the full app" App Store overlay.
     const storeKitFile = project.addFramework("StoreKit.framework", {
       target: clipTargetUuid,
