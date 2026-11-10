@@ -136,8 +136,12 @@ function clipBuildSettings(config, isDebug) {
     PRODUCT_BUNDLE_IDENTIFIER: `"${CLIP_BUNDLE_ID}"`,
     PRODUCT_NAME: `"${CLIP_TARGET_NAME}"`,
     SWIFT_VERSION: "5.0",
-    // App Clips are iPhone-only.
-    TARGETED_DEVICE_FAMILY: '"1"',
+    // Xcode requires the clip's UIDeviceFamily to EQUAL the parent app's
+    // (Universal 1,2 here) — iPhone-only '1' fails ValidateEmbeddedBinary
+    // at archive (Rewards run 50, Nov 10 2026). ASC's iPad rules for a
+    // universal clip are met by the clip's icon set +
+    // UISupportedInterfaceOrientations~ipad + UILaunchScreen in Info.plist.
+    TARGETED_DEVICE_FAMILY: '"1,2"',
     VERSIONING_SYSTEM: '"apple-generic"',
   };
 
