@@ -108,14 +108,22 @@ function withAppClipFiles(config) {
   ]);
 }
 
-/** List the clip bundle ID on the parent app's entitlements. */
-function withAppClipParentEntitlements(config) {
-  return withEntitlementsPlist(config, (config) => {
-    config.modResults[
-      "com.apple.developer.associated-appclip-app-identifiers"
-    ] = [CLIP_BUNDLE_ID];
-    return config;
-  });
+function withAppClip(config) {
+  config = withAppClipFiles(config);
+  // NOTE (Nov 10, 2026): do NOT add
+  // com.apple.developer.associated-appclip-app-identifiers to the parent
+  // app's entitlements. The "BeaTrackFam App Store" provisioning profile
+  // does not carry that entitlement (regenerating it in the portal did
+  // not add it), so declaring it makes the archive fail with
+  // 'Provisioning profile "BeaTrackFam App Store" doesn't match the
+  // entitlements file's value...' (main runs 32 and 33). Rewards and
+  // Motivation never declare it on the parent and archive fine — the
+  // association is established by the clip's own
+  // parent-application-identifiers entitlement plus the Embed App Clips
+  // phase. If App Store Connect ever rejects the upload for a missing
+  // association, that is a portal App ID fix, not a plugin one.
+  config = withAppClipXcodeProject(config);
+  return config;
 }
 
 function clipBuildSettings(config, isDebug) {
@@ -414,13 +422,6 @@ function withAppClipXcodeProject(config) {
 
     return config;
   });
-}
-
-function withAppClip(config) {
-  config = withAppClipFiles(config);
-  config = withAppClipParentEntitlements(config);
-  config = withAppClipXcodeProject(config);
-  return config;
 }
 
 module.exports = createRunOncePlugin(withAppClip, "with-app-clip");

@@ -96,8 +96,6 @@ jobs:
           }
           const main = Object.entries(o.PBXNativeTarget).find(([k, v]) => v && String(v.name) === 'BeaTrackFam');
           if (!main || !main[1].dependencies || main[1].dependencies.length !== 1) fail('main target does not depend on the clip target');
-          const ent = fs.readFileSync('ios/BeaTrackFam/BeaTrackFam.entitlements', 'utf8');
-          if (!ent.includes('com.beatrackfaminc.BeaTrackFam')) fail('parent entitlements do not list the clip bundle ID');
           console.log('App Clip target OK: BeaTrackFamClip / com.beatrackfaminc.BeaTrackFam, embedded in BeaTrackFam.');
           "
 
