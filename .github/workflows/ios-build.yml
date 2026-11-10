@@ -41,8 +41,11 @@ jobs:
         # leave it stale. Regenerates it from app.json (same font/position
         # as the shipped splash — see the script header).
         run: |
-          python3 -m pip install --quiet pillow
-          python3 .github/scripts/regen-splash-label.py
+          # The runner's system Python is PEP 668 externally-managed, so a
+          # bare `pip install pillow` fails. Use a throwaway venv instead.
+          python3 -m venv "$RUNNER_TEMP/splash-venv"
+          "$RUNNER_TEMP/splash-venv/bin/pip" install --quiet pillow
+          "$RUNNER_TEMP/splash-venv/bin/python" .github/scripts/regen-splash-label.py
 
       - name: Read app version from app.json
         run: |
