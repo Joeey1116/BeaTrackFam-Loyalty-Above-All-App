@@ -33,9 +33,12 @@
  * a version bump — the numbers are only stamped into the clip's Info.plist
  * and build settings so the two stay in sync).
  *
- * Signing: the clip target uses automatic signing (`CODE_SIGN_STYLE =
- * Automatic`, no hardcoded team). The iOS workflow passes DEVELOPMENT_TEAM
- * and -allowProvisioningUpdates to xcodebuild, which covers the clip too.
+ * Signing (manual, mirroring the Rewards/Motivation plugins): each target
+ * carries its own Release provisioning profile — main app "BeaTrackFam App
+ * Store", clip "BeaTrackFam App Clip" — and the iOS workflow imports the
+ * distribution certificate and archives with CODE_SIGN_STYLE=Manual.
+ * (Nov 10, 2026: automatic signing failed the first 14.0.0 archive — Xcode
+ * picked a stale team profile without the App Clip entitlement.)
  *
  * Portal/ASC work this plugin CANNOT do (Joey must do it before the first
  * clip build succeeds — see the commit message / handoff for the steps):
@@ -44,14 +47,10 @@
  * by automatic signing on first build) and an App Clip experience must be
  * configured in App Store Connect for the invocation URL.
  *
- * NOTE (Nov 10, 2026): the Developer portal shows the MAIN app's bundle ID
- * as `com.beatrackfamofficial`, while this repo builds `com.beatrackfaminc`
- * (app.json `ios.bundleIdentifier`). The main bundle ID is deliberately NOT
- * changed here — that is a separate decision for Joey. Consequence: the
- * clip ID above is a child of `com.beatrackfaminc`, not of
- * `com.beatrackfamofficial`. If the App Store app record really is
- * `com.beatrackfamofficial`, the clip cannot be its App Clip until the
- * parent/clip pairing is reconciled in the portal; flag it, don't guess.
+ * NOTE (Nov 10, 2026): Joey confirmed the MAIN app's real App Store bundle
+ * ID is `com.beatrackfaminc` (the portal's `com.beatrackfamofficial` App ID
+ * is a leftover, not the store app) — so the clip ID above is a child of the
+ * real parent, and the pairing is correct.
  */
 const fs = require("fs");
 const path = require("path");
@@ -69,6 +68,8 @@ const PARENT_BUNDLE_ID = "com.beatrackfaminc";
 const CLIP_DIR_NAME = "BeaTrackFamClip";
 const CLIP_PRODUCT_TYPE =
   "com.apple.product-type.application.on-demand-install-capable";
+const MAIN_PROFILE_NAME = "BeaTrackFam App Store";
+const CLIP_PROFILE_NAME = "BeaTrackFam App Clip";
 
 /** Copy the clip source templates into ios/BeaTrackFamClip. */
 function withAppClipFiles(config) {
@@ -127,7 +128,6 @@ function clipBuildSettings(config, isDebug) {
     ASSETCATALOG_COMPILER_APPICON_NAME: "AppIcon",
     CLANG_ENABLE_MODULES: "YES",
     CODE_SIGN_ENTITLEMENTS: `${CLIP_DIR_NAME}/${CLIP_TARGET_NAME}.entitlements`,
-    CODE_SIGN_STYLE: "Automatic",
     CURRENT_PROJECT_VERSION: String(buildNumber),
     INFOPLIST_FILE: `${CLIP_DIR_NAME}/Info.plist`,
     IPHONEOS_DEPLOYMENT_TARGET: String(deploymentTarget),
@@ -142,8 +142,15 @@ function clipBuildSettings(config, isDebug) {
   };
 
   if (isDebug) {
+    // Debug keeps automatic signing for local dev builds.
+    settings.CODE_SIGN_STYLE = "Automatic";
     settings.GCC_PREPROCESSOR_DEFINITIONS = ['"DEBUG=1"', '"$(inherited)"'];
     settings.SWIFT_OPTIMIZATION_LEVEL = '"-Onone"';
+  } else {
+    // Release only: manual signing with the clip's App Store profile,
+    // mirroring the Rewards/Motivation plugins.
+    settings.CODE_SIGN_STYLE = "Manual";
+    settings.PROVISIONING_PROFILE_SPECIFIER = `"${CLIP_PROFILE_NAME}"`;
   }
 
   return settings;
@@ -161,6 +168,24 @@ function cleanFileReference(project, fileRefUuid) {
   for (const key of Object.keys(ref)) {
     if (ref[key] === undefined || ref[key] === "undefined") {
       delete ref[key];
+    }
+  }
+}
+
+/** Set the main target's Release signing to manual + the named App Store
+ * profile (mirrors the Motivation plugin's setReleaseProfileSpecifier).
+ * The workflow must NOT pass PROVISIONING_PROFILE_SPECIFIER on the command
+ * line — it would force the main profile onto the clip target too. */
+function setReleaseProfileSpecifier(project, targetUuid, profileName) {
+  const target = project.pbxNativeTargetSection()[targetUuid];
+  if (!target) return;
+  const list = project.pbxXCConfigurationList()[target.buildConfigurationList];
+  if (!list) return;
+  for (const cfg of list.buildConfigurations || []) {
+    const conf = project.pbxXCBuildConfigurationSection()[cfg.value];
+    if (conf && conf.name === "Release") {
+      conf.buildSettings.CODE_SIGN_STYLE = "Manual";
+      conf.buildSettings.PROVISIONING_PROFILE_SPECIFIER = `"${profileName}"`;
     }
   }
 }
@@ -195,6 +220,10 @@ function withAppClipXcodeProject(config) {
       );
       return config;
     }
+
+    // Main target: manual signing with the App Store profile (Release
+    // only) — see setReleaseProfileSpecifier above.
+    setReleaseProfileSpecifier(project, mainTargetUuid, MAIN_PROFILE_NAME);
 
     // --- Build configurations -------------------------------------------
     const configList = project.addXCConfigurationList(
